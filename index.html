@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SheetDash – Dashboard Builder</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="index-body">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon">📊</div>
+      SheetDash
+    </a>
+    <div class="navbar-spacer"></div>
+    <div class="navbar-actions">
+      <a href="builder.html" class="btn btn-primary" id="go-builder-btn" style="display:none">
+        Build Dashboard →
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">✨ No code. No sign-up.</div>
+    <h1>Turn any spreadsheet into a<br /><span>visual dashboard</span></h1>
+    <p>Upload a CSV or Excel file and instantly create interactive charts, KPI cards, and data tables.</p>
+
+    <!-- Upload Zone -->
+    <div class="upload-section">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".csv,.xls,.xlsx" />
+        <div class="drop-icon">📂</div>
+        <h3>Drop your file here</h3>
+        <p>Drag & drop or click to browse</p>
+        <div class="formats">
+          <span class="format-badge">CSV</span>
+          <span class="format-badge">XLS</span>
+          <span class="format-badge">XLSX</span>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="upload-status hidden" id="upload-status">
+        <div class="spinner"></div>
+        <span id="status-text">Parsing file…</span>
+      </div>
+
+      <div class="divider">or</div>
+
+      <button class="btn btn-outline btn-lg" id="sample-btn" style="width:100%;justify-content:center">
+        🧪 Try with sample sales data
+      </button>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how-it-works" id="how-it-works">
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Upload your sheet</h3>
+        <p>Drop any CSV or Excel file. We detect columns and data types automatically.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Add widgets</h3>
+        <p>Choose from bar, line, pie charts, KPI cards, and data tables.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Explore your data</h3>
+        <p>Your dashboard updates in real-time. Print or share it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Preview -->
+  <section class="preview-section hidden" id="preview-section">
+    <div class="preview-header">
+      <h2 id="preview-filename">Preview</h2>
+      <div class="preview-stats">
+        <span class="stat-chip">Rows: <strong id="stat-rows">—</strong></span>
+        <span class="stat-chip">Columns: <strong id="stat-cols">—</strong></span>
+      </div>
+      <a href="builder.html" class="btn btn-primary">Build Dashboard →</a>
+    </div>
+
+    <!-- Column type chips -->
+    <div class="columns-grid" id="columns-grid"></div>
+
+    <!-- Table preview -->
+    <div id="preview-table-wrap"></div>
+  </section>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/parser.js"></script>
+  <script>
+    const dropZone  = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const status    = document.getElementById('upload-status');
+    const statusTxt = document.getElementById('status-text');
+    const preview   = document.getElementById('preview-section');
+    const goBtnNav  = document.getElementById('go-builder-btn');
+
+    // Drag-over visual feedback
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    document.getElementById('sample-btn').addEventListener('click', () => {
+      const data = Parser.getSampleData();
+      sessionStorage.setItem('sheetData', JSON.stringify(data));
+      sessionStorage.setItem('sheetName', 'Sample Sales Data');
+      showPreview(data, 'Sample Sales Data');
+    });
+
+    async function handleFile(file) {
+      const validExts = ['csv', 'xls', 'xlsx'];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!validExts.includes(ext)) {
+        showToast('Unsupported file type. Please use CSV, XLS, or XLSX.', 'error');
+        return;
+      }
+
+      status.classList.remove('hidden');
+      statusTxt.textContent = `Parsing ${file.name}…`;
+      dropZone.style.pointerEvents = 'none';
+
+      try {
+        const data = await Parser.parseFile(file);
+        sessionStorage.setItem('sheetData', JSON.stringify(data));
+        sessionStorage.setItem('sheetName', file.name);
+        showPreview(data, file.name);
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        status.classList.add('hidden');
+        dropZone.style.pointerEvents = '';
+      }
+    }
+
+    function showPreview(data, filename) {
+      document.getElementById('preview-filename').textContent = filename;
+      document.getElementById('stat-rows').textContent = data.totalRows.toLocaleString();
+      document.getElementById('stat-cols').textContent = data.columns.length;
+
+      // Column chips
+      const grid = document.getElementById('columns-grid');
+      grid.innerHTML = data.columns.map(col => {
+        const icon = col.type === 'numeric' ? '#' : col.type === 'date' ? '📅' : 'Aa';
+        return `<span class="col-chip ${col.type}">
+          <span class="type-icon">${icon}</span>
+          ${escHtml(col.name)}
+        </span>`;
+      }).join('');
+
+      // Table preview (first 6 rows)
+      const wrap = document.getElementById('preview-table-wrap');
+      const headers = data.columns.map(c => c.name);
+      const rows = data.rows.slice(0, 6);
+      const thead = `<thead><tr>${headers.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${rows.map(row =>
+        `<tr>${headers.map(h => `<td>${escHtml(String(row[h] ?? ''))}</td>`).join('')}</tr>`
+      ).join('')}</tbody>`;
+      wrap.innerHTML = `
+        <div class="table-wrapper">
+          <table class="data-table">${thead}${tbody}</table>
+          ${data.totalRows > 6 ? `<div class="table-more">Showing 6 of ${data.totalRows} rows</div>` : ''}
+        </div>`;
+
+      preview.classList.remove('hidden');
+      document.getElementById('how-it-works').classList.add('hidden');
+      goBtnNav.style.display = '';
+      preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showToast(msg, type = '') {
+      const tc = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      tc.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

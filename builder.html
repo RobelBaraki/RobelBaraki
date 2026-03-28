@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SheetDash – Builder</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body class="builder-body">
+
+  <!-- Top Navbar -->
+  <nav class="navbar builder-nav">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon">📊</div>
+      SheetDash
+    </a>
+    <div class="sheet-info">
+      <span id="nav-sheet-name">—</span>
+      <span>·</span>
+      <span id="nav-row-count">—</span> rows
+    </div>
+    <div class="navbar-spacer"></div>
+    <div class="navbar-actions">
+      <button class="btn btn-ghost" id="btn-save" title="Save dashboard layout">💾 Save</button>
+      <button class="btn btn-ghost" id="btn-print" title="Print / Export as PDF">🖨 Print</button>
+      <a href="index.html" class="btn btn-outline">Upload New</a>
+      <button class="btn btn-primary" id="btn-add-widget">+ Add Widget</button>
+    </div>
+  </nav>
+
+  <!-- Main Layout -->
+  <div class="builder-layout">
+
+    <!-- Sidebar: column list -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h3>Columns</h3>
+        <span id="sidebar-col-count" style="font-size:0.8rem;color:var(--text-light)"></span>
+      </div>
+      <div class="sidebar-cols" id="sidebar-cols">
+        <!-- Column items injected by builder.js -->
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn btn-primary" id="sidebar-add-btn">+ Add Widget</button>
+      </div>
+    </aside>
+
+    <!-- Dashboard canvas -->
+    <main class="dashboard-canvas" id="dashboard-canvas">
+      <div class="dashboard-grid" id="dashboard-grid">
+        <!-- Empty state shown by default -->
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">📈</div>
+          <h2>Your dashboard is empty</h2>
+          <p>Click <strong>+ Add Widget</strong> to start building your dashboard from the sheet data.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ========================
+       Add Widget Modal
+       ======================== -->
+  <div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Widget</h2>
+        <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Widget Type -->
+        <div class="form-group">
+          <label class="form-label">Widget Type</label>
+          <div class="type-grid" id="type-grid">
+            <button class="type-btn active" data-type="bar">
+              <span class="type-emoji">📊</span> Bar Chart
+            </button>
+            <button class="type-btn" data-type="line">
+              <span class="type-emoji">📈</span> Line Chart
+            </button>
+            <button class="type-btn" data-type="pie">
+              <span class="type-emoji">🥧</span> Pie Chart
+            </button>
+            <button class="type-btn" data-type="doughnut">
+              <span class="type-emoji">🍩</span> Doughnut
+            </button>
+            <button class="type-btn" data-type="kpi">
+              <span class="type-emoji">🔢</span> KPI Card
+            </button>
+            <button class="type-btn" data-type="table">
+              <span class="type-emoji">📋</span> Data Table
+            </button>
+          </div>
+        </div>
+
+        <!-- Title -->
+        <div class="form-group">
+          <label class="form-label" for="widget-title">Title</label>
+          <input type="text" class="form-control" id="widget-title" placeholder="e.g. Sales by Region" />
+        </div>
+
+        <!-- Chart config (bar / line / pie / doughnut) -->
+        <div id="chart-config">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+              <label class="form-label" for="x-col" id="x-col-label">Category (X axis)</label>
+              <select class="form-control" id="x-col"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="y-col">Value (Y axis)</label>
+              <select class="form-control" id="y-col"></select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:1rem">
+            <label class="form-label" for="aggregation">Aggregation</label>
+            <select class="form-control" id="aggregation">
+              <option value="sum">Sum</option>
+              <option value="avg">Average</option>
+              <option value="count">Count</option>
+              <option value="min">Min</option>
+              <option value="max">Max</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- KPI config -->
+        <div id="kpi-config" class="hidden">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+              <label class="form-label" for="kpi-col">Column</label>
+              <select class="form-control" id="kpi-col"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="kpi-metric">Metric</label>
+              <select class="form-control" id="kpi-metric">
+                <option value="sum">Sum</option>
+                <option value="avg">Average</option>
+                <option value="count">Count</option>
+                <option value="min">Min</option>
+                <option value="max">Max</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table config -->
+        <div id="table-config" class="hidden">
+          <div class="form-group">
+            <label class="form-label">Columns to Show</label>
+            <div id="table-col-checks" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+          </div>
+          <div class="form-group" style="margin-top:1rem">
+            <label class="form-label" for="table-limit">Row Limit</label>
+            <select class="form-control" id="table-limit">
+              <option value="5">5 rows</option>
+              <option value="10" selected>10 rows</option>
+              <option value="20">20 rows</option>
+              <option value="50">50 rows</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Color palette -->
+        <div class="form-group" id="palette-group">
+          <label class="form-label">Color Palette</label>
+          <div class="palette-grid" id="palette-grid"></div>
+        </div>
+
+        <!-- Widget size -->
+        <div class="form-group">
+          <label class="form-label">Size</label>
+          <div class="size-grid">
+            <button class="size-btn active" data-size="half">
+              <div class="size-visual">
+                <div class="bar" style="width:48%"></div>
+                <div style="flex:1;background:var(--border);border-radius:3px"></div>
+              </div>
+              Half width
+            </button>
+            <button class="size-btn" data-size="full">
+              <div class="size-visual">
+                <div class="bar" style="width:100%"></div>
+              </div>
+              Full width
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="modal-confirm">Add Widget</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/parser.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/builder.js"></script>
+</body>
+</html>
