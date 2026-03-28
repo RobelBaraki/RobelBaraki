@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sheet Dashboard Builder</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- PapaParse for CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- SheetJS for Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect x="2" y="2" width="11" height="11" rx="2" fill="#6366f1"/>
+          <rect x="15" y="2" width="11" height="11" rx="2" fill="#8b5cf6"/>
+          <rect x="2" y="15" width="11" height="11" rx="2" fill="#06b6d4"/>
+          <rect x="15" y="15" width="11" height="11" rx="2" fill="#10b981"/>
+        </svg>
+        <span>SheetDash</span>
+      </div>
+      <div class="header-actions" id="headerActions" style="display:none">
+        <button class="btn btn-ghost" id="resetBtn">Upload New File</button>
+        <button class="btn btn-primary" id="exportBtn">Export Dashboard</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Upload View -->
+  <main id="uploadView" class="upload-view">
+    <div class="upload-hero">
+      <h1>Turn any spreadsheet into a<br/><span class="gradient-text">visual dashboard</span></h1>
+      <p class="subtitle">Upload a CSV or Excel file and instantly get charts, summaries, and insights — no configuration needed.</p>
+
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <path d="M24 4L24 32M24 4L16 12M24 4L32 12" stroke="#6366f1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 36H40" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>
+            <path d="M8 36V42H40V36" stroke="#6366f1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="drop-label">Drag &amp; drop your file here</p>
+        <p class="drop-sub">or</p>
+        <label class="btn btn-primary" for="fileInput">Browse File</label>
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" hidden />
+        <p class="drop-hint">Supports CSV, XLSX, XLS · Up to 10MB</p>
+      </div>
+
+      <div class="features-row">
+        <div class="feature-pill">Auto-detected charts</div>
+        <div class="feature-pill">Summary statistics</div>
+        <div class="feature-pill">Interactive table</div>
+        <div class="feature-pill">Column insights</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay" style="display:none">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <p>Analyzing your data…</p>
+    </div>
+  </div>
+
+  <!-- Sheet Selector (multi-sheet Excel) -->
+  <div id="sheetSelectorOverlay" class="modal-overlay" style="display:none">
+    <div class="modal-card">
+      <h3>Select a Sheet</h3>
+      <p>This workbook has multiple sheets. Choose one to visualize.</p>
+      <div id="sheetList" class="sheet-list"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard View -->
+  <main id="dashboardView" class="dashboard-view" style="display:none">
+
+    <!-- File info bar -->
+    <div class="info-bar">
+      <div class="info-bar-left">
+        <span class="file-badge" id="fileNameBadge"></span>
+        <span class="info-chip" id="rowCountChip"></span>
+        <span class="info-chip" id="colCountChip"></span>
+      </div>
+      <div class="info-bar-right">
+        <label class="search-wrap">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="#94a3b8" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="text" id="tableSearch" placeholder="Search table…" />
+        </label>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <section class="section">
+      <h2 class="section-title">Summary</h2>
+      <div class="summary-grid" id="summaryGrid"></div>
+    </section>
+
+    <!-- Charts -->
+    <section class="section">
+      <h2 class="section-title">Visualizations</h2>
+      <div class="charts-grid" id="chartsGrid"></div>
+    </section>
+
+    <!-- Data Table -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Data Table</h2>
+        <span class="table-row-count" id="tableRowCount"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
