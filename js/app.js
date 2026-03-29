@@ -29,8 +29,16 @@ const exportBtn            = document.getElementById('exportBtn');
 const tableSearch          = document.getElementById('tableSearch');
 
 // ── File Input Events ──────────────────────────────────────────────────────
-dropZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+// Only trigger programmatic click when the drop zone background itself is tapped,
+// not when the native <label> inside it is tapped (that already opens the picker).
+dropZone.addEventListener('click', e => {
+  if (!e.target.closest('label') && !e.target.closest('input')) fileInput.click();
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  // Reset so the same file can be re-uploaded
+  e.target.value = '';
+});
 
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
